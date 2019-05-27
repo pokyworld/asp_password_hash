@@ -1,4 +1,3 @@
-<!-- #includes virtual="./config/default.asp" -->
 <%
     Const adOpenDynamic = 2
     Const adLockOptimistic = 3
