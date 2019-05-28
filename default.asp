@@ -6,20 +6,24 @@
 <!-- #include virtual="./includes/jwt.asp" -->
 <!-- #include virtual="./includes/functions.asp" -->
 <%
-    '// Get token from cookies
+    ' Response.Write("Logged In : " & Session("LoggedIn") & "<hr/>") 
+    ErrorMsg = ""
+
     token = URL.decode(Trim(Request.Cookies("token")&""))
     ' Response.Write "Token : " & token & "<hr/>"
+
     If Len(token) >= 1 Then
         payload = jwtGetPayload(token)
-        ' Response.Write payload & "<hr/>"
         Set oJSON = new aspJSON
         oJSON.loadJSON(payload)
-        email = Trim(oJSON.data("user")("email")&"")
-        id = Trim(oJSON.data("user")("id")&"")
         expTime = CLng(Trim(oJSON.data("exp")&""))
-        ' Response.Write "id : " & id & "<br/>"
-        ' Response.Write "email : " & email & "<br/>"
-        ' Response.Write "exp : " & expTime & "<br/>"
+        If expTime >= UTC.timestamp() Then
+            email = Trim(oJSON.data("user")("email")&"")
+            id = Trim(oJSON.data("user")("id")&"")
+            ' Response.Write "Token: id : " & id & "<br/>"
+            ' Response.Write "Token: email : " & email & "<br/>"
+            ' Response.Write "Token: exp : " & expTime & "<hr/>"
+        End If
         Set oJSON = Nothing
         Session("LoggedIn") = True
     Else
@@ -30,6 +34,15 @@
     'Response.Write "URL Encoding : " & URL.encode("My New House") & "<br/>"
 
     If Request.Form.Count >= 1 Then
+        ' For Each item In Request.Form
+        '     Response.Write "Form Item : " & item & " - " & Request.Form(item) & "<br/>"
+        ' Next
+
+        If Len(Trim(Request.Form("logout"))) >= 1 Then
+            Session("LoggedIn") = False
+            Response.Cookies("token").Expires = DateAdd("d", -1, Now())
+            Response.Redirect(Request.ServerVariables("SCRIPT_NAME"))
+        End If
 
         process = Trim(Request.Form("form"))
         email = Trim(Request.Form("email") & "")
@@ -39,6 +52,8 @@
         
         ' Response.Write "Valid Email Format (" & email & ") : " & validEmail & "<br/>"
         ' Response.Write "Valid Password Format (" & password & ") : " & validPassword  & "<br/>"
+        If validEmail = False Then : ErrorMsg = "Invalid Email: Format"
+        If validPassword = False Then : ErrorMsg = "Invalid Password: Format"
 
         '// Check whether user exists with that Username
         sql = "SELECT * FROM user WHERE email = '" & email & "' ORDER BY id DESC LIMIT 1;"
@@ -49,8 +64,9 @@
             dbSalt = RS("salt")&""
             dbPassword = RS("password")&""
             ' Response.Write "dbID : " & dbID & "<br/>"
+            ' Response.Write "dbEmail : " & dbEmail & "<br/>"
         Else
-            '// Response.Write "Email : NOT FOUND<br/>"
+            ErrorMsg = "Invalid Email: Not Found"
         End If
         RS.Close
         Set RS = Nothing
@@ -93,24 +109,32 @@
             End With
             payload = oJSON.JSONoutput()
             Set oJSON = Nothing
-            ' Response.Write "Payload : " & payload & "<br/>"
 
             '// Create JWT
             token = jwtGetToken(payload, header, jwtKey)
-            ' Response.Write "Token : " & token & "<hr/>"
+            verify = jwtVerifyToken(token, jwtKey)
+            
+            ' Response.Write "Token : " & token & "<br/>"
+            ' Response.Write "Verified : " & verify & "<br/>"
+            ' Response.Write "Payload : " & payload & "<hr/>"
 
             '// Save JWT to Cookies
-            Session("LoggedIn") = True
-            Response.Cookies("token") = token
-            Response.Cookies("token").Expires = DateAdd("d", 1, Now())
+            If verify = True Then
+                Session("LoggedIn") = True
+                Response.Cookies("token") = token
+                Response.Cookies("token").Expires = DateAdd("d", 1, Now())
+            Else
+                Session("LoggedIn") = False
+                ErrorMsg = "Failed to Verify Access Token"
+            End If
 
-        ElseIf Len(dbEmail) >= 1 And (expTime > UTC.timestamp() Or process = "login") Then
+        ElseIf Len(dbEmail) >= 1 Or process = "login" Then
             '// Email exists already
 
             hashedPassword = Hash(password, dbSalt)
+            ' Response.Write "dbPassword : " & dbPassword & "<br/>"  
+            ' Response.Write "hashedPassword : " & hashedPassword & "<br/>"  
             If hashedPassword = dbPassword Then
-            '// If hash of new password matches, then login
-
             '//----------------------------
             '// Generate JWT
             '//----------------------------
@@ -131,18 +155,26 @@
                 End With
                 payload = oJSON.JSONoutput()
                 Set oJSON = Nothing
-                ' Response.Write "Payload : " & payload & "<br/>"
 
                 '// Create JWT
                 token = jwtGetToken(payload, header, jwtKey)
-                ' Response.Write "Token : " & token & "<hr/>"
+                verify = jwtVerifyToken(token, jwtKey)
 
-                ' '// Save JWT to Cookies
-                Session("LoggedIn") = True
-                Response.Cookies("token") = token
-                Response.Cookies("token").Expires = DateAdd("d", 1, Now())
+                ' Response.Write "Token : " & token & "<br/>"
+                ' Response.Write "Verified : " & verify & "<br/>"
+                ' Response.Write "Payload : " & payload & "<hr/>"
+
+                ' '// If verified, Save JWT to Cookies
+                If verify = True Then
+                    Session("LoggedIn") = True
+                    Response.Cookies("token") = token
+                    Response.Cookies("token").Expires = DateAdd("d", 1, Now())
+                Else
+                    Session("LoggedIn") = False
+                End If
             Else
                 '// Otherwise return error
+                ErrorMsg = "Invalid Credentials : Not Found"
                 ' Response.Write "Password Matches: FAIL - ERROR<br/>"
 
             End If
@@ -198,7 +230,16 @@
         <hr />
         <% If Session("LoggedIn") = False Then %>
         <!-- Login or Register -->
-        <div id="alerts"></div>
+        <div id="alerts">
+        <% If Len(ErrorMsg) >= 1 Then %>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>Error: </strong> <% =ErrorMsg %>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        <% End If %>
+        </div>
         <div class="row">
             <div class="col mb-5">
                 <form id="login" class="form-horizontal" action="#" method="POST">
@@ -272,6 +313,10 @@
         </div>
         <% Else '// Logged in %>
             <h3>Welcome: <% =email %><h3>
+            <form method="post">
+                <label for="logout"><small>Not <% =email%>?</small></label>
+                <input id="logout" name="logout" type="submit" class="btn btn-dark btn-large" value="Login in as New user" />
+            </form>
         <% End If %>
     </div>
 

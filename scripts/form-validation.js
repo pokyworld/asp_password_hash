@@ -91,7 +91,6 @@ if (window.addEventListener) {
                 errors.count += 1;
                 errors.items.push({ valid: false, message: "Passwords must include lowercase letter(s)" });
             };
-            console.log(password.replace(/[^A-Z]/gi, ""));
             if (password.replace(/[^A-Z]/g, "").length < 1) {
                 errors.count += 1;
                 errors.items.push({ valid: false, message: "Passwords must include uppercase letter(s)" });
