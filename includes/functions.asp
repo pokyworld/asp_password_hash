@@ -618,3 +618,28 @@ Function RegexReplace(sInput, sPattern, sReplacement)
 End Function
 
 %>
+<script language="javascript" runat="server">
+URL = {
+    encode : function(s){return encodeURIComponent(s).replace(/'/g,"%27").replace(/"/g,"%22")},
+    decode : function(s){return decodeURIComponent(s.replace(/\+/g,  " "))}
+}
+
+// UTC = {
+//   timestamp : function(){
+//     var date = new date();
+//     //var unix = date.getTime();
+//     return date.ToString()}
+// }
+
+UTC = {
+  date : function() {
+    var date = new Date();
+    return date;
+  },
+  timestamp : function(plus) {
+    var date = new Date();
+    time = Math.floor(date.getTime() / 1000) + (plus | 0);
+    return time;
+  }
+}
+</script>

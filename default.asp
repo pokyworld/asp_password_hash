@@ -3,11 +3,35 @@
 <!-- #includes virtual="./config/default.asp" -->
 <!-- #include virtual="./includes/dbOpen.asp" -->
 <!-- #include virtual="./includes/passwords.asp" -->
+<!-- #include virtual="./includes/jwt.asp" -->
 <!-- #include virtual="./includes/functions.asp" -->
 <%
+    '// Get token from cookies
+    token = URL.decode(Trim(Request.Cookies("token")&""))
+    Response.Write "Token : " & token & "<hr/>"
+    If Len(token) >= 1 Then
+        payload = jwtGetPayload(token)
+        Response.Write payload & "<hr/>"
+        Set oJSON = new aspJSON
+        oJSON.loadJSON(payload)
+        email = Trim(oJSON.data("user")("email")&"")
+        id = Trim(oJSON.data("user")("id")&"")
+        expTime = CLng(Trim(oJSON.data("exp")&""))
+        Response.Write "id : " & id & "<br/>"
+        Response.Write "email : " & email & "<br/>"
+        Response.Write "exp : " & expTime & "<br/>"
+        Set oJSON = Nothing
+        Session("LoggedIn") = True
+    Else
+        Session("LoggedIn") = False
+    End If
+
+    'Response.Write "UTC Timestamp : " & UTC.timestamp(3600) & "<br/>"
+    'Response.Write "URL Encoding : " & URL.encode("My New House") & "<br/>"
+
     If Request.Form.Count >= 1 Then
 
-        Process = Trim(Request.Form("form"))
+        process = Trim(Request.Form("form"))
         email = Trim(Request.Form("email") & "")
         password = Trim(Request.Form("password") & "")
         validEmail = ValidateEmail(email)
@@ -20,18 +44,18 @@
         sql = "SELECT * FROM user WHERE email = '" & email & "' ORDER BY id DESC LIMIT 1;"
         Set RS = dbConn.Execute(sql)
         If Not RS.EOF Then
-            dbId = CLng(RS("id")&"")
+            dbID = CInt(RS("id")&"")
             dbEmail = RS("email")&""
             dbSalt = RS("salt")&""
             dbPassword = RS("password")&""
-            Response.Write "Email : FOUND<br/>"
+            Response.Write "dbId : " & dbID & "<br/>"
         Else
-            Response.Write "Email : NOT FOUND<br/>"
+            '// Response.Write "Email : NOT FOUND<br/>"
         End If
         RS.Close
         Set RS = Nothing
 
-        If Process = "register" And validEmail = True And validPassword = True And dbEmail = "" Then
+        If process = "register" And validEmail = True And validPassword = True And dbEmail = "" Then
 
             salt = getRndString(32)
             hashedPassword = Hash(password, salt)
@@ -49,17 +73,74 @@
             RS.Close
             Set RS = Nothing
 
-            '// Record the User as Logged In
+        '//----------------------------
+        '// Generate JWT
+        '//----------------------------
+
+            '// Header section
+            header = jwtGetHeader()
+
+            '// Payoad section
+            Set oJSON = new aspJSON
+            With oJSON.data
+                .Add "iat", UTC.timestamp()
+                .Add "exp", UTC.timestamp(86400)
+                .Add "user", oJSON.Collection()
+                With oJSON.data("user")
+                    .Add "id", id
+                    .Add "email", email
+                End With
+            End With
+            payload = oJSON.JSONoutput()
+            Set oJSON = Nothing
+            Response.Write "Payload : " & payload & "<br/>"
+
+            '// Create JWT
+            token = jwtGetToken(payload, header, jwtKey)
+            ' Response.Write "Token : " & token & "<hr/>"
 
             '// Save JWT to Cookies
+            Session("LoggedIn") = True
+            Response.Cookies("token") = token
+            Response.Cookies("token").Expires = DateAdd("d", 1, Now())
 
-        ElseIf Len(dbEmail) >= 1 Then
+        ElseIf Len(dbEmail) >= 1 And (expTime > UTC.timestamp() Or process = "login") Then
             '// Email exists already
-            Response.Write "Process : " & process & "<br/>"
+
             hashedPassword = Hash(password, dbSalt)
             If hashedPassword = dbPassword Then
-                '// If hash of new password matches, then login
-                Response.Write "Password Matches: PASS - LOGIN<br/>"
+            '// If hash of new password matches, then login
+
+            '//----------------------------
+            '// Generate JWT
+            '//----------------------------
+
+                '// Header section
+                header = jwtGetHeader()
+
+                '// Create payload as object
+                Set oJSON = new aspJSON
+                With oJSON.data
+                    .Add "iat", UTC.timestamp()
+                    .Add "exp", UTC.timestamp(86400)
+                    .Add "user", oJSON.Collection()
+                    With oJSON.data("user")
+                        .Add "id", dbID
+                        .Add "email", dbEmail
+                    End With
+                End With
+                payload = oJSON.JSONoutput()
+                Set oJSON = Nothing
+                Response.Write "Payload : " & payload & "<br/>"
+
+                '// Create JWT
+                token = jwtGetToken(payload, header, jwtKey)
+                Response.Write "Token : " & token & "<hr/>"
+
+                ' '// Save JWT to Cookies
+                Session("LoggedIn") = True
+                Response.Cookies("token") = token
+                Response.Cookies("token").Expires = DateAdd("d", 1, Now())
             Else
                 '// Otherwise return error
                 Response.Write "Password Matches: FAIL - ERROR<br/>"
@@ -115,9 +196,10 @@
 
         <h2>SHA256 Password Hashing</h2>
         <hr />
+        <% If Session("LoggedIn") = False Then %>
+        <!-- Login or Register -->
         <div id="alerts"></div>
         <div class="row">
-
             <div class="col-sm-12 col-md-5 mb-5">
                 <form id="register" class="form-horizontal" action="#" method="POST">
                     <fieldset>
@@ -188,6 +270,9 @@
                 </form>
             </div>
         </div>
+        <% Else '// Logged in %>
+            <h3>Welcome: <% =email %><h3>
+        <% End If %>
     </div>
 
     <!-- Scripts -->
