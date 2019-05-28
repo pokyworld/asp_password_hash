@@ -8,18 +8,18 @@
 <%
     '// Get token from cookies
     token = URL.decode(Trim(Request.Cookies("token")&""))
-    Response.Write "Token : " & token & "<hr/>"
+    ' Response.Write "Token : " & token & "<hr/>"
     If Len(token) >= 1 Then
         payload = jwtGetPayload(token)
-        Response.Write payload & "<hr/>"
+        ' Response.Write payload & "<hr/>"
         Set oJSON = new aspJSON
         oJSON.loadJSON(payload)
         email = Trim(oJSON.data("user")("email")&"")
         id = Trim(oJSON.data("user")("id")&"")
         expTime = CLng(Trim(oJSON.data("exp")&""))
-        Response.Write "id : " & id & "<br/>"
-        Response.Write "email : " & email & "<br/>"
-        Response.Write "exp : " & expTime & "<br/>"
+        ' Response.Write "id : " & id & "<br/>"
+        ' Response.Write "email : " & email & "<br/>"
+        ' Response.Write "exp : " & expTime & "<br/>"
         Set oJSON = Nothing
         Session("LoggedIn") = True
     Else
@@ -37,8 +37,8 @@
         validEmail = ValidateEmail(email)
         validPassword = ValidatePassword(password)
         
-        Response.Write "Valid Email Format (" & email & ") : " & validEmail & "<br/>"
-        Response.Write "Valid Password Format (" & password & ") : " & validPassword  & "<br/>"
+        ' Response.Write "Valid Email Format (" & email & ") : " & validEmail & "<br/>"
+        ' Response.Write "Valid Password Format (" & password & ") : " & validPassword  & "<br/>"
 
         '// Check whether user exists with that Username
         sql = "SELECT * FROM user WHERE email = '" & email & "' ORDER BY id DESC LIMIT 1;"
@@ -48,7 +48,7 @@
             dbEmail = RS("email")&""
             dbSalt = RS("salt")&""
             dbPassword = RS("password")&""
-            Response.Write "dbId : " & dbID & "<br/>"
+            ' Response.Write "dbID : " & dbID & "<br/>"
         Else
             '// Response.Write "Email : NOT FOUND<br/>"
         End If
@@ -93,7 +93,7 @@
             End With
             payload = oJSON.JSONoutput()
             Set oJSON = Nothing
-            Response.Write "Payload : " & payload & "<br/>"
+            ' Response.Write "Payload : " & payload & "<br/>"
 
             '// Create JWT
             token = jwtGetToken(payload, header, jwtKey)
@@ -131,11 +131,11 @@
                 End With
                 payload = oJSON.JSONoutput()
                 Set oJSON = Nothing
-                Response.Write "Payload : " & payload & "<br/>"
+                ' Response.Write "Payload : " & payload & "<br/>"
 
                 '// Create JWT
                 token = jwtGetToken(payload, header, jwtKey)
-                Response.Write "Token : " & token & "<hr/>"
+                ' Response.Write "Token : " & token & "<hr/>"
 
                 ' '// Save JWT to Cookies
                 Session("LoggedIn") = True
@@ -143,7 +143,7 @@
                 Response.Cookies("token").Expires = DateAdd("d", 1, Now())
             Else
                 '// Otherwise return error
-                Response.Write "Password Matches: FAIL - ERROR<br/>"
+                ' Response.Write "Password Matches: FAIL - ERROR<br/>"
 
             End If
 
@@ -200,6 +200,37 @@
         <!-- Login or Register -->
         <div id="alerts"></div>
         <div class="row">
+            <div class="col mb-5">
+                <form id="login" class="form-horizontal" action="#" method="POST">
+                    <fieldset>
+                        <legend class="">Login</legend>
+                        <div class="form-group">
+                            <!-- E-mail -->
+                            <label for="l_email">E-mail</label>
+                            <input type="email" autocomplete="username email" id="l_email" name="email" placeholder=""
+                                class="form-control input-xlarge">
+                            <p class="help-block">Please provide your E-mail</p>
+                        </div>
+
+                        <div class="form-group">
+                            <!-- Password-->
+                            <label for="l_password">Password</label>
+                            <input type="password" autocomplete="new-password" id="l_password" name="password"
+                                placeholder="" class="form-control input-xlarge">
+                            <p class="help-block">Password should be at least 8 characters</p>
+                        </div>
+
+                        <div class="form-group">
+                            <!-- Button -->
+                            <button class="btn btn-success">Login</button>
+                        </div>
+
+                        <input type="hidden" name="form" value="login" />
+
+                    </fieldset>
+                </form>
+            </div>
+            <div class="col-sm-hidden col-md-2">&nbsp;</div>
             <div class="col-sm-12 col-md-5 mb-5">
                 <form id="register" class="form-horizontal" action="#" method="POST">
                     <fieldset>
@@ -234,37 +265,6 @@
                         </div>
 
                         <input type="hidden" name="form" value="register" />
-
-                    </fieldset>
-                </form>
-            </div>
-            <div class="col-sm-hidden col-md-2">&nbsp;</div>
-            <div class="col mb-5">
-                <form id="login" class="form-horizontal" action="#" method="POST">
-                    <fieldset>
-                        <legend class="">Login</legend>
-                        <div class="form-group">
-                            <!-- E-mail -->
-                            <label for="l_email">E-mail</label>
-                            <input type="email" autocomplete="username email" id="l_email" name="email" placeholder=""
-                                class="form-control input-xlarge">
-                            <p class="help-block">Please provide your E-mail</p>
-                        </div>
-
-                        <div class="form-group">
-                            <!-- Password-->
-                            <label for="l_password">Password</label>
-                            <input type="password" autocomplete="new-password" id="l_password" name="password"
-                                placeholder="" class="form-control input-xlarge">
-                            <p class="help-block">Password should be at least 8 characters</p>
-                        </div>
-
-                        <div class="form-group">
-                            <!-- Button -->
-                            <button class="btn btn-success">Login</button>
-                        </div>
-
-                        <input type="hidden" name="form" value="login" />
 
                     </fieldset>
                 </form>
