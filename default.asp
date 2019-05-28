@@ -205,6 +205,7 @@
         integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
 
     <title>Password Hashing</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
     <style>
         * {
