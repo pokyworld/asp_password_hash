@@ -1,0 +1,13 @@
+* {
+    font-family: 'Roboto', sans-serif;
+}
+
+.help-block {
+    font-size: 0.7rem;
+}
+
+@media (max-width: 400px) {
+    .help-block {
+        font-size: 0.7rem;
+    }
+}

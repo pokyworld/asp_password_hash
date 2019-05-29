@@ -1,4 +1,9 @@
 <%
+    Function LogoutUser()
+        Session("LoggedIn") = False
+        Response.Cookies("token").Expires = DateAdd("d", -1, Now())
+        Response.Redirect(Request.ServerVariables("SCRIPT_NAME"))
+    End Function
 
     Function Hash(strPassword, strIndividualSalt)
         Hash = HashSHA512Managed(strSiteSalt & strPassword & strIndividualSalt)

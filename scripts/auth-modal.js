@@ -3,7 +3,7 @@ if (window.addEventListener) {
 
     window.addEventListener('load', () => {
 
-        // Global constants
+        // Global Contants
         let errors = {};
 
         // Conditionals
@@ -26,60 +26,14 @@ if (window.addEventListener) {
         }
 
     }, false); //W3C
+
 } else {
     alert("This browser no longer supported");
-}
+};
 
+// Functions
 const LoginUser = () => {
-    errors = { count: 0, items: [] };
 
-    const email = login.querySelector("#l_email").value;
-    const password = login.querySelector("#l_password").value;
-
-    // Check for Valid email
-    if (!ValidateEmail(email)) {
-        errors.count += 1;
-        errors.items.push({ valid: false, message: "Invalid Email address" });
-    };
-
-    // Min length of password required
-    if (password.length < 8) {
-        errors.count += 1;
-        errors.items.push({ valid: false, message: "Password must be minimum 8 characters" });
-    }
-
-    // Regex check for password character content
-    if (password.replace(/[^a-z]/g, "").length < 1) {
-        errors.count += 1;
-        errors.items.push({ valid: false, message: "Passwords must include lowercase letter(s)" });
-    };
-    if (password.replace(/[^A-Z]/g, "").length < 1) {
-        errors.count += 1;
-        errors.items.push({ valid: false, message: "Passwords must include uppercase letter(s)" });
-    };
-    if (password.replace(/[^0-9]/g, "").length < 1) {
-        errors.count += 1;
-        errors.items.push({ valid: false, message: "Passwords must include number(s)" });
-    };
-    if (password.replace(/[a-zA-Z0-9]/g, "").length < 1) {
-        errors.count += 1;
-        errors.items.push({ valid: false, message: "Passwords must include special character(s)" });
-    };
-
-    let errAlerts = [];
-    errors.items.map(item => {
-        errAlerts.push(
-            `<div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <strong>Error: </strong> ${item.message}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>`
-        )
-    });
-    alerts.innerHTML = errAlerts.join('');
-
-    if (errors.count === 0) login.submit();
 };
 
 const RegisterUser = () => {
@@ -146,4 +100,4 @@ const ValidateEmail = (email) => {
         return (true)
     }
     return (false)
-}
+};
