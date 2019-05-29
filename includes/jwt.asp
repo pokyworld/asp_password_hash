@@ -23,16 +23,20 @@ function jwtGetToken(payload, header, jwtKey){
 }
 
 function jwtVerifyToken(sh256Token, jwtKey) {
-    // var x = [127, 205, 206, 39, 112, 246, 196, 93, 65, 131, 203, 238, 111, 219, 75, 123, 88, 7, 51, 53, 123, 233, 239, 19, 186, 207, 110, 60, 123, 209, 84, 69];
-    // var y = [199, 241, 68, 205, 27, 189, 155, 126, 135, 44, 223, 237, 185, 238, 185, 244, 179, 105, 93, 110, 169, 11, 36, 173, 138, 70, 35, 40, 133, 136, 229, 173];
-    
     var token = jwt.WebTokenParser.parse(sh256Token);
-    // token.verify(x, y);
     return token.verify(jwtKey);
-    // return token;
 }
 
-function jwtGetPayload(token) {
+function jwtGetHeaderFromToken(token) {
+    var tokenArray = token.split(".");
+    if (tokenArray) {
+        var header = base64_decode(tokenArray[0]);
+        return header;
+    }
+    return false;
+}
+
+function jwtGetPayloadFromToken(token) {
     var tokenArray = token.split(".");
     if (tokenArray) {
         var payload = base64_decode(tokenArray[1]);

@@ -17,8 +17,11 @@
 '// Create payload as object
     Set oJSON = new aspJSON
     With oJSON.data
-        .Add "id", id
-        .Add "email", email
+        .Add "user", oJSON.Collection()
+        With oJSON.data("user")
+            .Add "id", id
+            .Add "email", email
+        End With
     End With
     payload = oJSON.JSONoutput()
     Set oJSON = Nothing
@@ -29,16 +32,19 @@
     Response.Write "Token : " & token & "<hr/>"
 
 '// Verify Token
-    result = jwtGetPayload(token, jwtKey)
-    Response.Write "Payload from Token : " & result & "<hr/>"
+    verify = jwtVerifyToken(token, jwtKey)
+    Response.Write "Verify Token : " & verify & "<hr/>"
 
-    If Len(result) >= 1 Then
+'// Get Payload From Token
+    payload = jwtGetPayloadFromToken(token)
+
+    If Len(payload) >= 1 Then
         Set oJSON = new aspJSON
-        oJSON.loadJSON(result)
-        id = oJSON.data("id")&""
+        oJSON.loadJSON(payload)
+        id = oJSON.data("user")("id")&""
+        email = oJSON.data("user")("email")&""
         Response.Write "id : " & id & "<br/>"
         Response.Write "email : " & email & "<br/>"
-        email = oJSON.data("email")&""
         Set oJSON = Nothing
     End If
 

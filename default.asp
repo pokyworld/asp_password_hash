@@ -13,25 +13,42 @@
     ' Response.Write "Token : " & token & "<hr/>"
 
     If Len(token) >= 1 Then
-        payload = jwtGetPayload(token)
-        Set oJSON = new aspJSON
-        oJSON.loadJSON(payload)
-        expTime = CLng(Trim(oJSON.data("exp")&""))
-        If expTime >= UTC.timestamp() Then
-            email = Trim(oJSON.data("user")("email")&"")
-            id = Trim(oJSON.data("user")("id")&"")
-            ' Response.Write "Token: id : " & id & "<br/>"
-            ' Response.Write "Token: email : " & email & "<br/>"
-            ' Response.Write "Token: exp : " & expTime & "<hr/>"
+
+        '// Verify token
+        verify = jwtVerifyToken(token, jwtKey)
+
+        If verify = True Then
+            header = jwtGetHeaderFromToken(token)
+            payload = jwtGetPayloadFromToken(token)
+            Set oJSON = new aspJSON
+            oJSON.loadJSON(payload)
+            expTime = CLng(Trim(oJSON.data("exp")&""))
+            If expTime >= UTC.timestamp() Then
+                email = Trim(oJSON.data("user")("email")&"")
+                id = Trim(oJSON.data("user")("id")&"")
+
+                '// Update the token in cookies
+                token = jwtGetToken(payload, header, jwtKey)
+                verify = jwtVerifyToken(token, jwtKey)
+                
+                '// Save JWT to Cookies
+                If verify = True Then
+                    Session("LoggedIn") = True
+                    Response.Cookies("token") = token
+                    Response.Cookies("token").Expires = DateAdd("d", 1, Now())
+                Else
+                    Session("LoggedIn") = True
+                End If
+            Else
+                Session("LoggedIn") = False
+            End If
+        Else
+            Session("LoggedIn") = False
         End If
         Set oJSON = Nothing
-        Session("LoggedIn") = True
     Else
         Session("LoggedIn") = False
     End If
-
-    'Response.Write "UTC Timestamp : " & UTC.timestamp(3600) & "<br/>"
-    'Response.Write "URL Encoding : " & URL.encode("My New House") & "<br/>"
 
     If Request.Form.Count >= 1 Then
         ' For Each item In Request.Form
@@ -50,8 +67,6 @@
         validEmail = ValidateEmail(email)
         validPassword = ValidatePassword(password)
         
-        ' Response.Write "Valid Email Format (" & email & ") : " & validEmail & "<br/>"
-        ' Response.Write "Valid Password Format (" & password & ") : " & validPassword  & "<br/>"
         If validEmail = False Then : ErrorMsg = "Invalid Email: Format"
         If validPassword = False Then : ErrorMsg = "Invalid Password: Format"
 
@@ -63,8 +78,6 @@
             dbEmail = RS("email")&""
             dbSalt = RS("salt")&""
             dbPassword = RS("password")&""
-            ' Response.Write "dbID : " & dbID & "<br/>"
-            ' Response.Write "dbEmail : " & dbEmail & "<br/>"
         Else
             ErrorMsg = "Invalid Email: Not Found"
         End If
@@ -113,10 +126,6 @@
             '// Create JWT
             token = jwtGetToken(payload, header, jwtKey)
             verify = jwtVerifyToken(token, jwtKey)
-            
-            ' Response.Write "Token : " & token & "<br/>"
-            ' Response.Write "Verified : " & verify & "<br/>"
-            ' Response.Write "Payload : " & payload & "<hr/>"
 
             '// Save JWT to Cookies
             If verify = True Then
@@ -132,9 +141,8 @@
             '// Email exists already
 
             hashedPassword = Hash(password, dbSalt)
-            ' Response.Write "dbPassword : " & dbPassword & "<br/>"  
-            ' Response.Write "hashedPassword : " & hashedPassword & "<br/>"  
             If hashedPassword = dbPassword Then
+
             '//----------------------------
             '// Generate JWT
             '//----------------------------
@@ -160,10 +168,6 @@
                 token = jwtGetToken(payload, header, jwtKey)
                 verify = jwtVerifyToken(token, jwtKey)
 
-                ' Response.Write "Token : " & token & "<br/>"
-                ' Response.Write "Verified : " & verify & "<br/>"
-                ' Response.Write "Payload : " & payload & "<hr/>"
-
                 ' '// If verified, Save JWT to Cookies
                 If verify = True Then
                     Session("LoggedIn") = True
@@ -175,10 +179,7 @@
             Else
                 '// Otherwise return error
                 ErrorMsg = "Invalid Credentials : Not Found"
-                ' Response.Write "Password Matches: FAIL - ERROR<br/>"
-
             End If
-
         End If
     Else
         '// Display plain forms
